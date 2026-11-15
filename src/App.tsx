@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { type Card, type Combo, type Suit, SUIT_MARKS, SUIT_NAMES, createDeck, detectCombos, drawCards, shuffle } from "./engine";
+import { type CampaignState, createCampaign, completeNormalRound, completeShop, defeatBoss, claimBossReward, STAGE_NAMES, BOSS_NAMES } from "./progression";
 
-type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; finished: boolean; };
+type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; finished: boolean; campaign: CampaignState; scoreBonus: number; shopPurchases: string[]; };
 const freshRun = (): Run => {
   const dealt = drawCards(shuffle(createDeck()), [], []);
   return { ...dealt, selected: [], score: 0, goal: 220, plays: 4, discards: 3, chips: 20, luck: 0, round: 1, message: "Monte sua primeira combinação.", finished: false };
@@ -26,7 +27,7 @@ const loadRun = (): Run | null => {
         typeof value.discards !== "number" || typeof value.chips !== "number" ||
         typeof value.luck !== "number" || typeof value.round !== "number" ||
         typeof value.message !== "string") return null;
-    return { ...value, finished: Boolean(value.finished) } as Run;
+    return { ...value, finished: Boolean(value.finished), campaign: value.campaign ?? createCampaign(), scoreBonus: Number(value.scoreBonus ?? 0), shopPurchases: Array.isArray(value.shopPurchases) ? value.shopPurchases : [] } as Run;
   } catch { return null; }
 };
 
@@ -52,7 +53,7 @@ export default function App() {
     const used = new Set(combo.cards.map(c => c.id));
     const rest = run.hand.filter(c => !used.has(c.id));
     const replenished = drawCards(run.deck, [...run.discard, ...combo.cards], rest);
-    const gain = Math.round(combo.total);
+    const gain = Math.round(combo.total + run.scoreBonus);
     setLastGain(gain);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 750);
@@ -97,7 +98,7 @@ export default function App() {
     </header>
 
     <section className="run-strip">
-      <div><span className="eyebrow">ETAPA 01 · A CIDADE ACORDOU</span><h1>Mesa do Caos <span>/{String(run.round).padStart(2,"0")}</span></h1></div>
+      <div><span className="eyebrow">ETAPA {run.campaign.stage} · {STAGE_NAMES[run.campaign.stage - 1].toUpperCase()} · {run.campaign.phase === "boss" ? "CHEFE: " + BOSS_NAMES[run.campaign.stage - 1].toUpperCase() : run.campaign.phase.toUpperCase()}</span><h1>{run.campaign.phase === "boss" ? BOSS_NAMES[run.campaign.stage - 1] : "Mesa do Caos"} <span>/{String(run.round).padStart(2,"0")}</span></h1></div>
       <div className="goal-block"><small>META DA RODADA</small><strong>{fmt(run.score)} <i>/ {fmt(run.goal)}</i></strong><div className="progress"><span style={{width:Math.min(100,run.score/run.goal*100)+"%"}}/></div></div>
     </section>
 
@@ -150,7 +151,7 @@ export default function App() {
       <div className="slot-actions"><button onClick={spin} disabled={run.luck<30||ended}>1 giro potente <small>30 ✧</small></button><button onClick={spinTriple} disabled={run.luck<30||ended}>3 giros menores <small>30 ✧</small></button></div>
     </section>
 
-    {ended && <section className="result-overlay"><div className="result-card"><span className="eyebrow">{won?"META ALCANÇADA":"FIM DA RODADA"}</span><h2>{won?"VOCÊ AMASSOU!":"A CASA NÃO CAIU… AINDA."}</h2><p>{won?"Meta cumprida. Você pode avançar para a próxima rodada.":"Suas quatro jogadas acabaram antes da meta."}</p><strong>{fmt(run.score)} <small>/ {fmt(run.goal)} pontos</small></strong><button className="primary-action" onClick={won?nextRound:restart}>{won?"Próxima rodada →":"Tentar novamente ↻"}</button></div></section>}
-    <footer><span>BRASICARDS · PROTÓTIPO 0.1</span><span>FEITO PARA COMBOS ABSURDOS</span></footer>
+    {ended && run.campaign.phase !== "shop" && run.campaign.phase !== "boss-reward" && run.campaign.phase !== "complete" && <section className="result-overlay"><div className="result-card"><span className="eyebrow">{won?"META ALCANÇADA":"FIM DA RODADA"}</span><h2>{won?"VOCÊ AMASSOU!":"A CASA NÃO CAIU… AINDA."}</h2><p>{won?"Meta cumprida. Você pode avançar para a próxima rodada.":"Suas quatro jogadas acabaram antes da meta."}</p><strong>{fmt(run.score)} <small>/ {fmt(run.goal)} pontos</small></strong><button className="primary-action" onClick={won?nextRound:restart}>{won?(run.campaign.phase === "boss"?"Ver recompensas →":"Continuar →"):"Tentar novamente ↻"}</button></div></section>}
+    {run.campaign.phase === "shop" && <section className="result-overlay"><div className="result-card shop-card"><span className="eyebrow">INTERVALO ENTRE ETAPAS</span><h2>LOJA DO CAOS</h2><p>Escolha melhorias para a próxima etapa. Cada oferta pode ser comprada uma vez.</p><div className="shop-offers">{[{id:"points",name:"Mesa aquecida",desc:"+5 pontos em cada combinação",cost:10},{id:"discard",name:"Descarte extra",desc:"+1 descarte na próxima rodada",cost:8},{id:"luck",name:"Amuleto pé quente",desc:"+20 Fator Sorte",cost:6},{id:"plays",name:"Tempo adicional",desc:"+1 jogada na próxima rodada",cost:12}].map(o=><button key={o.id} className="shop-offer" disabled={run.shopPurchases.includes(o.id)||run.chips<o.cost} onClick={()=>buyShopOffer(o.id)}><b>{o.name}</b><small>{o.desc}</small><strong>{run.shopPurchases.includes(o.id)?"COMPRADO":o.cost+" fichas"}</strong></button>)}</div><p>Saldo: <strong>{fmt(run.chips)} fichas</strong></p><button className="primary-action" onClick={leaveShop}>Enfrentar {BOSS_NAMES[run.campaign.stage-1]} →</button></div></section>}\n    {run.campaign.phase === "boss-reward" && <section className="result-overlay"><div className="result-card shop-card"><span className="eyebrow">CHEFE DERROTADO</span><h2>ESCOLHA SUA RECOMPENSA</h2><p>Selecione apenas uma das três recompensas.</p><div className="shop-offers"><button className="shop-offer" onClick={()=>claimReward("chips")}><b>Bolso reforçado</b><small>Receba 25 fichas.</small><strong>25 FICHAS</strong></button><button className="shop-offer" onClick={()=>claimReward("luck")}><b>Maré de sorte</b><small>Receba 35 de Fator Sorte.</small><strong>35 ✧</strong></button><button className="shop-offer" onClick={()=>claimReward("upgrade")}><b>Combo turbinado</b><small>+8 pontos em cada combinação futura.</small><strong>UPGRADE</strong></button></div></div></section>}\n    {run.campaign.phase === "complete" && <section className="result-overlay"><div className="result-card"><span className="eyebrow">FIM DA CAMPANHA</span><h2>VOCÊ DOMINOU O CAOS!</h2><p>Nove rodadas e três chefes superados.</p><button className="primary-action" onClick={restart}>Nova campanha ↻</button></div></section>}\n    <footer><span>BRASICARDS · PROTÓTIPO 0.1</span><span>FEITO PARA COMBOS ABSURDOS</span></footer>
   </main>;
 }
