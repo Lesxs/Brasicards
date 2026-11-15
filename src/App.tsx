@@ -54,7 +54,8 @@ export default function App() {
     const used = new Set(combo.cards.map(c => c.id));
     const rest = run.hand.filter(c => !used.has(c.id));
     const replenished = drawCards(run.deck, [...run.discard, ...combo.cards], rest);
-    const bossPenalty = run.campaign.phase === "boss" && run.campaign.stage === 2 ? 0.8 : 1;\n    const gain = Math.round(combo.total * bossPenalty + run.scoreBonus);
+    const bossPenalty = run.campaign.phase === "boss" && run.campaign.stage === 2 ? 0.8 : 1;
+    const gain = Math.round(combo.total * bossPenalty + run.scoreBonus);
     setLastGain(gain);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 750);
