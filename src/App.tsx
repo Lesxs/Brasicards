@@ -1,19 +1,37 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, Combo, Suit, SUIT_MARKS, SUIT_NAMES, createDeck, detectCombos, drawCards, shuffle } from "./engine";
 
-type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; };
+type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; finished: boolean; };
 const freshRun = (): Run => {
   const dealt = drawCards(shuffle(createDeck()), [], []);
-  return { ...dealt, selected: [], score: 0, goal: 220, plays: 4, discards: 3, chips: 20, luck: 0, round: 1, message: "Monte sua primeira combinação." };
+  return { ...dealt, selected: [], score: 0, goal: 220, plays: 4, discards: 3, chips: 20, luck: 0, round: 1, message: "Monte sua primeira combinação.", finished: false };
 };
 const suitClass = (s: Suit) => "suit-" + s;
 const fmt = (n: number) => Math.floor(n).toLocaleString("pt-BR");
+const validCard = (value: unknown): value is Card => {
+  if (!value || typeof value !== "object") return false;
+  const card = value as Card;
+  return typeof card.id === "string" && ["brasa", "ginga", "mare", "sertao"].includes(card.suit) && Number.isInteger(card.value) && card.value >= 1 && card.value <= 10;
+};
+const loadRun = (): Run | null => {
+  try {
+    const raw = localStorage.getItem("brasicards-run");
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<Run>;
+    if (!Array.isArray(value.deck) || !value.deck.every(validCard) ||
+        !Array.isArray(value.discard) || !value.discard.every(validCard) ||
+        !Array.isArray(value.hand) || !value.hand.every(validCard) ||
+        !Array.isArray(value.selected) || typeof value.score !== "number" ||
+        typeof value.goal !== "number" || typeof value.plays !== "number" ||
+        typeof value.discards !== "number" || typeof value.chips !== "number" ||
+        typeof value.luck !== "number" || typeof value.round !== "number" ||
+        typeof value.message !== "string") return null;
+    return { ...value, finished: Boolean(value.finished) } as Run;
+  } catch { return null; }
+};
 
 export default function App() {
-  const [run, setRun] = useState<Run>(() => {
-    try { const saved = localStorage.getItem("brasicards-run"); if (saved) return JSON.parse(saved) as Run; } catch { /* ignore invalid local save */ }
-    return freshRun();
-  });
+  const [run, setRun] = useState<Run>(() => loadRun() ?? freshRun());
   const [activeCombo, setActiveCombo] = useState<Combo | null>(null);
   const [lastGain, setLastGain] = useState(0);
   const [flash, setFlash] = useState(false);
@@ -24,7 +42,7 @@ export default function App() {
   const combos = useMemo(() => selectedCards.length >= 2 ? detectCombos(selectedCards) : [], [selectedCards]);
   const won = run.score >= run.goal;
   const lost = run.plays <= 0 && !won;
-  const ended = won || lost;
+  const ended = run.finished || run.plays <= 0;
 
   const toggleCard = (id: string) => {
     if (ended) return;
@@ -56,6 +74,7 @@ export default function App() {
     setRun({ ...fresh, round: next, goal: Math.round(220 * Math.pow(1.34, next - 1)), chips: run.chips + bonus, luck: run.luck, message: "Nova rodada. +" + bonus + " fichas pela vitória." });
     setActiveCombo(null); setLastGain(0);
   };
+  const finishRound = () => { if (won) setRun(r => ({ ...r, finished: true, message: "Rodada encerrada com a meta alcançada." })); };
   const restart = () => { setRun(freshRun()); setActiveCombo(null); setLastGain(0); };
   const spin = () => {
     if (run.luck < 30 || ended) return;
@@ -96,6 +115,7 @@ export default function App() {
       <div className="counter"><span>JOGADAS</span><strong>{run.plays}<small>/ 4</small></strong><div className="pips">{Array.from({length:4},(_,i)=><i className={i<run.plays?"on":""} key={i}/>)}</div></div>
       <div className="counter"><span>DESCARTES</span><strong>{run.discards}<small>/ 3</small></strong><div className="pips">{Array.from({length:3},(_,i)=><i className={i<run.discards?"on discard-pip":""} key={i}/>)}</div></div>
       <div className="round-note"><span className="live-dot"/> SUA VEZ <small>Selecione de 2 a 5 cartas</small></div>
+      {won && run.plays > 0 && !run.finished && <button className="finish-button" onClick={finishRound}>Encerrar rodada ✓</button>}
       <button className="text-button" onClick={()=>setShowCombos(v=>!v)}>{showCombos?"Ocultar regras":"Ver combinações"} ⌄</button>
     </section>
 
@@ -121,7 +141,7 @@ export default function App() {
       {combos.length===0 ? <p className="empty-combos">Nenhuma combinação válida nessa seleção. Experimente outras cartas.</p> :
         combos.map((combo,i)=><button key={combo.id+"-"+i} className="combo-option" onClick={()=>playCombo(combo)} disabled={ended||run.plays<=0}>
           <span className="combo-option-main"><b>{combo.name}</b><small>{combo.cards.length} cartas · {combo.description}</small></span>
-          <span className="combo-math"><small>{fmt(combo.base)} + {fmt(combo.bonus+combo.suitBonus)} × {combo.multiplier}</small><strong>+{fmt(combo.total)}</strong></span><span className="option-arrow">↗</span>
+          <span className="combo-math"><small>({fmt(combo.base)} + {fmt(combo.bonus)} + {fmt(combo.suitBonus)}) × {combo.multiplier}</small><strong>+{fmt(combo.total)}</strong></span><span className="option-arrow">↗</span>
         </button>)}
     </section>}
 
@@ -131,7 +151,7 @@ export default function App() {
       <div className="slot-actions"><button onClick={spin} disabled={run.luck<30||ended}>1 giro potente <small>30 ✧</small></button><button onClick={spinTriple} disabled={run.luck<30||ended}>3 giros menores <small>30 ✧</small></button></div>
     </section>
 
-    {ended && <section className="result-overlay"><div className="result-card"><span className="eyebrow">{won?"META ALCANÇADA":"FIM DA RODADA"}</span><h2>{won?"VOCÊ AMASSOU!":"A CASA NÃO CAIU… AINDA."}</h2><p>{won?"Você superou a meta e pode seguir para a próxima rodada.":"Suas quatro jogadas acabaram antes da meta."}</p><strong>{fmt(run.score)} <small>/ {fmt(run.goal)} pontos</small></strong><button className="primary-action" onClick={won?nextRound:restart}>{won?"Próxima rodada →":"Tentar novamente ↻"}</button></div></section>}
+    {ended && <section className="result-overlay"><div className="result-card"><span className="eyebrow">{won?"META ALCANÇADA":"FIM DA RODADA"}</span><h2>{won?"VOCÊ AMASSOU!":"A CASA NÃO CAIU… AINDA."}</h2><p>{won?"Meta cumprida. Você pode avançar para a próxima rodada.":"Suas quatro jogadas acabaram antes da meta."}</p><strong>{fmt(run.score)} <small>/ {fmt(run.goal)} pontos</small></strong><button className="primary-action" onClick={won?nextRound:restart}>{won?"Próxima rodada →":"Tentar novamente ↻"}</button></div></section>}
     <footer><span>BRASICARDS · PROTÓTIPO 0.1</span><span>FEITO PARA COMBOS ABSURDOS</span></footer>
   </main>;
 }
