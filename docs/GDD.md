@@ -106,6 +106,22 @@ The campaign state machine is implemented in `src/progression.ts`:
 
 This module currently defines and tests the progression rules independently. The prototype interface and saved-run model still need to be connected to these phases before the complete campaign is playable end to end.
 
+## Playable campaign prototype update
+
+The React prototype now connects the campaign phases to the run flow:
+- Completing three normal rounds opens the shop; the shop offers four one-time purchases.
+- Shop upgrades carry into later rounds of the current run: combo score bonus, extra discard, extra play, or Luck Factor.
+- Leaving the shop starts the stage boss encounter.
+- Boss victories open a three-choice reward screen: chips, Luck Factor, or a permanent-for-this-run combo bonus.
+- The third boss reward completes the campaign.
+
+Boss mechanics in the current prototype:
+- O Fiscal: selection is limited to four cards.
+- O Azarado: combo points are reduced by 20%.
+- Máquina Quebrada: slot-machine spins are disabled during the encounter.
+
+These are first-pass prototype values and need balance testing. The current shop and boss rewards are functional placeholders; the full special-card and relic inventories, event encounters, and save migration for campaign-specific edge cases remain future work.
+
 ## Events
 Special encounters between rounds. They offer two or three clear choices with explicit costs and consequences. Events may award cards, relics, chips, or eligible card evolutions.
 
