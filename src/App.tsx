@@ -45,7 +45,7 @@ export default function App() {
 
   const toggleCard = (id: string) => {
     if (ended) return;
-    setRun(r => ({ ...r, selected: r.selected.includes(id) ? r.selected.filter(x => x !== id) : r.selected.length < 5 ? [...r.selected, id] : r.selected }));
+    setRun(r => ({ ...r, selected: r.selected.includes(id) ? r.selected.filter(x => x !== id) : r.selected.length < 7 ? [...r.selected, id] : r.selected }));
   };
   const playCombo = (combo: Combo) => {
     if (ended || run.plays <= 0) return;
@@ -113,7 +113,7 @@ export default function App() {
     <section className="round-controls">
       <div className="counter"><span>JOGADAS</span><strong>{run.plays}<small>/ 4</small></strong><div className="pips">{Array.from({length:4},(_,i)=><i className={i<run.plays?"on":""} key={i}/>)}</div></div>
       <div className="counter"><span>DESCARTES</span><strong>{run.discards}<small>/ 3</small></strong><div className="pips">{Array.from({length:3},(_,i)=><i className={i<run.discards?"on discard-pip":""} key={i}/>)}</div></div>
-      <div className="round-note"><span className="live-dot"/> SUA VEZ <small>Selecione de 2 a 5 cartas</small></div>
+      <div className="round-note"><span className="live-dot"/> SUA VEZ <small>Combos: 2–5 cartas · descarte: até 7</small></div>
       {won && run.plays > 0 && !run.finished && <button className="finish-button" onClick={finishRound}>Encerrar rodada ✓</button>}
       <button className="text-button" onClick={()=>setShowCombos(v=>!v)}>{showCombos?"Ocultar regras":"Ver combinações"} ⌄</button>
     </section>
@@ -146,7 +146,7 @@ export default function App() {
 
     <section className="slot-panel">
       <div className="slot-copy"><span className="eyebrow">SISTEMA ESPECIAL</span><h2>Máquina da Sorte <span>✧</span></h2><p>Transforme Fator Sorte em pontos. Sem apostas, só caos.</p></div>
-      <div className="slot-reels"><span>🍋</span><span>7</span><span>✦</span></div>
+      <div className="slot-reels"><span className="lemon-symbol">LIM</span><span>7</span><span>✦</span></div>
       <div className="slot-actions"><button onClick={spin} disabled={run.luck<30||ended}>1 giro potente <small>30 ✧</small></button><button onClick={spinTriple} disabled={run.luck<30||ended}>3 giros menores <small>30 ✧</small></button></div>
     </section>
 
