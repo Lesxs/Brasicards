@@ -47,14 +47,14 @@ export default function App() {
 
   const toggleCard = (id: string) => {
     if (ended) return;
-    setRun(r => ({ ...r, selected: r.selected.includes(id) ? r.selected.filter(x => x !== id) : r.selected.length < 7 ? [...r.selected, id] : r.selected }));
+    setRun(r => ({ ...r, selected: r.selected.includes(id) ? r.selected.filter(x => x !== id) : r.selected.length < (r.campaign.phase === "boss" && r.campaign.stage === 1 ? 4 : 7) ? [...r.selected, id] : r.selected }));
   };
   const playCombo = (combo: Combo) => {
     if (ended || run.plays <= 0) return;
     const used = new Set(combo.cards.map(c => c.id));
     const rest = run.hand.filter(c => !used.has(c.id));
     const replenished = drawCards(run.deck, [...run.discard, ...combo.cards], rest);
-    const gain = Math.round(combo.total + run.scoreBonus);
+    const bossPenalty = run.campaign.phase === "boss" && run.campaign.stage === 2 ? 0.8 : 1;\n    const gain = Math.round(combo.total * bossPenalty + run.scoreBonus);
     setLastGain(gain);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 750);
@@ -121,7 +121,7 @@ export default function App() {
     setActiveCombo(null); setLastGain(0);
   };
   const spin = () => {
-    if (run.luck < 30 || ended) return;
+    if (run.luck < 30 || ended || (run.campaign.phase === "boss" && run.campaign.stage === 3)) return;
     const reward = 35 + Math.floor(Math.random() * 46);
     setRun(r => ({ ...r, luck: r.luck - 30, score: r.score + reward, message: "A máquina pagou " + reward + " pontos!" }));
     setLastGain(reward); setFlash(true); window.setTimeout(() => setFlash(false), 750);
@@ -176,7 +176,7 @@ export default function App() {
       </div>
       <div className="hand-actions">
         <button className="secondary-action" onClick={discardSelected} disabled={!selectedCards.length||run.discards<=0||ended}>Descartar selecionadas <span>−1 descarte</span></button>
-        <div className="action-hint">Selecione cartas para revelar combinações possíveis.</div>
+        <div className="action-hint">{run.campaign.phase === "boss" && run.campaign.stage === 1 ? "O Fiscal: máximo de 4 cartas por seleção." : "Selecione cartas para revelar combinações possíveis."}</div>
       </div>
     </section>
 
@@ -190,9 +190,9 @@ export default function App() {
     </section>}
 
     <section className="slot-panel">
-      <div className="slot-copy"><span className="eyebrow">SISTEMA ESPECIAL</span><h2>Máquina da Sorte <span>✧</span></h2><p>Transforme Fator Sorte em pontos. Sem apostas, só caos.</p></div>
+      <div className="slot-copy"><span className="eyebrow">SISTEMA ESPECIAL</span><h2>Máquina da Sorte <span>✧</span></h2><p>{run.campaign.phase === "boss" && run.campaign.stage === 3 ? "Máquina Quebrada: giros bloqueados durante este chefe." : "Transforme Fator Sorte em pontos. Sem apostas, só caos."}</p></div>
       <div className="slot-reels"><span className="lemon-symbol">LIM</span><span>7</span><span>✦</span></div>
-      <div className="slot-actions"><button onClick={spin} disabled={run.luck<30||ended}>1 giro potente <small>30 ✧</small></button><button onClick={spinTriple} disabled={run.luck<30||ended}>3 giros menores <small>30 ✧</small></button></div>
+      <div className="slot-actions"><button onClick={spin} disabled={run.luck<30||ended||(run.campaign.phase==="boss"&&run.campaign.stage===3)}>1 giro potente <small>30 ✧</small></button><button onClick={spinTriple} disabled={run.luck<30||ended||(run.campaign.phase==="boss"&&run.campaign.stage===3)}>3 giros menores <small>30 ✧</small></button></div>
     </section>
 
     {ended && run.campaign.phase !== "shop" && run.campaign.phase !== "boss-reward" && run.campaign.phase !== "complete" && <section className="result-overlay"><div className="result-card"><span className="eyebrow">{won?"META ALCANÇADA":"FIM DA RODADA"}</span><h2>{won?"VOCÊ AMASSOU!":"A CASA NÃO CAIU… AINDA."}</h2><p>{won?"Meta cumprida. Você pode avançar para a próxima rodada.":"Suas quatro jogadas acabaram antes da meta."}</p><strong>{fmt(run.score)} <small>/ {fmt(run.goal)} pontos</small></strong><button className="primary-action" onClick={won?nextRound:restart}>{won?(run.campaign.phase === "boss"?"Ver recompensas →":"Continuar →"):"Tentar novamente ↻"}</button></div></section>}
