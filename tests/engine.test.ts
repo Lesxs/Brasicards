@@ -76,3 +76,83 @@ describe("combination recognition", () => {
     expect(combos.some(c => c.id === "run")).toBe(false);
   });
 });
+
+
+describe("campaign progression", () => {
+  it("requires three normal rounds, a shop, a boss, and a reward before the next stage", async () => {
+    const {
+      createCampaign,
+      completeNormalRound,
+      completeShop,
+      defeatBoss,
+      claimBossReward
+    } = await import("../src/progression");
+
+    let campaign = createCampaign();
+    expect(campaign.phase).toBe("normal");
+
+    campaign = completeNormalRound(campaign, true);
+    campaign = completeNormalRound(campaign, true);
+    expect(campaign.phase).toBe("normal");
+    expect(campaign.normalRoundsCompleted).toBe(2);
+
+    campaign = completeNormalRound(campaign, true);
+    expect(campaign.phase).toBe("shop");
+    expect(campaign.normalRoundsCompleted).toBe(3);
+
+    campaign = completeShop(campaign);
+    expect(campaign.phase).toBe("boss");
+    campaign = defeatBoss(campaign, true);
+    expect(campaign.phase).toBe("boss-reward");
+    expect(campaign.bossesDefeated).toBe(1);
+
+    campaign = claimBossReward(campaign);
+    expect(campaign.stage).toBe(2);
+    expect(campaign.phase).toBe("normal");
+    expect(campaign.normalRoundsInStage).toBe(0);
+  });
+
+  it("does not advance on a lost round, skipped shop, or failed boss", async () => {
+    const {
+      createCampaign,
+      completeNormalRound,
+      completeShop,
+      defeatBoss
+    } = await import("../src/progression");
+
+    const initial = createCampaign();
+    expect(completeNormalRound(initial, false)).toEqual(initial);
+    expect(completeShop(initial)).toEqual(initial);
+
+    let campaign = initial;
+    campaign = completeNormalRound(campaign, true);
+    campaign = completeNormalRound(campaign, true);
+    campaign = completeNormalRound(campaign, true);
+    campaign = completeShop(campaign);
+    expect(defeatBoss(campaign, false)).toEqual(campaign);
+  });
+
+  it("finishes after three stages, nine normal rounds, and three bosses", async () => {
+    const {
+      createCampaign,
+      completeNormalRound,
+      completeShop,
+      defeatBoss,
+      claimBossReward
+    } = await import("../src/progression");
+
+    let campaign = createCampaign();
+    for (let stage = 1; stage <= 3; stage++) {
+      campaign = completeNormalRound(campaign, true);
+      campaign = completeNormalRound(campaign, true);
+      campaign = completeNormalRound(campaign, true);
+      campaign = completeShop(campaign);
+      campaign = defeatBoss(campaign, true);
+      campaign = claimBossReward(campaign);
+    }
+
+    expect(campaign.phase).toBe("complete");
+    expect(campaign.normalRoundsCompleted).toBe(9);
+    expect(campaign.bossesDefeated).toBe(3);
+  });
+});
