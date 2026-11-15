@@ -47,7 +47,7 @@ Initial catalogue:
 - Each discard may contain any number of cards up to seven.
 - Discards do not consume plays.
 - Refill the hand to seven after plays and discards whenever cards are available.
-- Reaching the score target does not immediately end the round; the player may continue using remaining plays.
+- Reaching the score target does not immediately end the round; the player may continue using remaining plays or manually end the round.
 
 ## Resources
 - Points: meet round and boss targets.
