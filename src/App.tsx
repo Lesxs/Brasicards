@@ -37,7 +37,7 @@ export default function App() {
   const [flash, setFlash] = useState(false);
   const [showCombos, setShowCombos] = useState(false);
 
-  useEffect(() => { localStorage.setItem("brasicards-run", JSON.stringify(run)); }, [run]);
+  useEffect(() => { try { localStorage.setItem("brasicards-run", JSON.stringify(run)); } catch { /* storage may be unavailable */ } }, [run]);
   const selectedCards = useMemo(() => run.hand.filter(c => run.selected.includes(c.id)), [run.hand, run.selected]);
   const combos = useMemo(() => selectedCards.length >= 2 ? detectCombos(selectedCards) : [], [selectedCards]);
   const won = run.score >= run.goal;
