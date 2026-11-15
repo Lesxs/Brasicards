@@ -44,7 +44,7 @@ Initial catalogue:
 ## Round rules
 - Four plays per round.
 - Three discards per round.
-- Each discard may contain any number of cards up to seven.
+- Each discard may contain any number of cards up to seven. The selection UI allows up to seven cards; combinations consume only the two to five cards that belong to the chosen pattern.
 - Discards do not consume plays.
 - Refill the hand to seven after plays and discards whenever cards are available.
 - Reaching the score target does not immediately end the round; the player may continue using remaining plays or manually end the round.
