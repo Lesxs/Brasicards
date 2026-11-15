@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card, Combo, Suit, SUIT_MARKS, SUIT_NAMES, createDeck, detectCombos, drawCards, shuffle } from "./engine";
+import { type Card, type Combo, type Suit, SUIT_MARKS, SUIT_NAMES, createDeck, detectCombos, drawCards, shuffle } from "./engine";
 
 type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; finished: boolean; };
 const freshRun = (): Run => {
@@ -41,7 +41,6 @@ export default function App() {
   const selectedCards = useMemo(() => run.hand.filter(c => run.selected.includes(c.id)), [run.hand, run.selected]);
   const combos = useMemo(() => selectedCards.length >= 2 ? detectCombos(selectedCards) : [], [selectedCards]);
   const won = run.score >= run.goal;
-  const lost = run.plays <= 0 && !won;
   const ended = run.finished || run.plays <= 0;
 
   const toggleCard = (id: string) => {
