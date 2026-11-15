@@ -1,6 +1,6 @@
 # BRASICARDS — Game Design Document
 
-Status: planning baseline for prototype 0.1. Balance values remain provisional.
+Status: playable campaign prototype 0.2.0. Balance values remain provisional.
 
 ## Vision
 A Brazilian meme-inspired roguelite card game focused on expressive combos, escalating score feedback, meaningful run decisions, and a playful fictional casino atmosphere. No real-money betting, payments, or cash-out.
@@ -104,7 +104,7 @@ The campaign state machine is implemented in `src/progression.ts`:
 - Claiming the reward starts the next stage; claiming the third boss reward completes the campaign.
 - Losing a normal round or boss does not advance campaign progression.
 
-This module currently defines and tests the progression rules independently. The prototype interface and saved-run model still need to be connected to these phases before the complete campaign is playable end to end.
+The state machine is connected to the playable interface. A special event now appears after the second normal round of each stage, followed by the third normal round, the mandatory shop, and the boss.
 
 ## Playable campaign prototype update
 
@@ -123,10 +123,10 @@ Boss mechanics in the current prototype:
 These are first-pass prototype values and need balance testing. The current shop and boss rewards are functional placeholders; the full special-card and relic inventories, event encounters, and save migration for campaign-specific edge cases remain future work.
 
 ## Events
-Special encounters between rounds. They offer two or three clear choices with explicit costs and consequences. Events may award cards, relics, chips, or eligible card evolutions.
+Ten themed event encounters are catalogued. One event appears between the second and third normal rounds of each stage, with three choices: chips, Luck Factor, or a scoring upgrade. Additional event-specific costs and card-evolution branches remain future work.
 
 ## Permanent progression
-Unlocks add variety, not permanent attribute bonuses. Unlocks, achievements, and records persist after a run ends.
+Unlocks add variety, not permanent attribute bonuses. Special-card unlocks persist in browser local storage. Achievements and detailed run records remain planned.
 
 ## Presentation and accessibility
 - Desktop-first, responsive mobile layout.
@@ -134,7 +134,7 @@ Unlocks add variety, not permanent attribute bonuses. Unlocks, achievements, and
 - Original illustrations; no emoji used as substitute artwork.
 - Score popups, multiplier emphasis, combo callouts, chip animations, and slot-machine effects.
 - Common combos are quick and restrained; rare and exceptional combos receive stronger presentation.
-- Reduced-motion preference respected; separate music and SFX controls planned.
+- Reduced-motion preference respected; Web Audio SFX for card selection, combos, and slot rewards, with an in-game sound toggle.
 
 ## Technical direction
 - React + TypeScript + Vite.
@@ -155,3 +155,14 @@ Unlocks add variety, not permanent attribute bonuses. Unlocks, achievements, and
 
 ## Open balance work
 All exact target curves, combo point values, shop prices, reward rates, relic/card effects, and slot symbol probabilities are provisional until automated tests and repeated playtests.
+
+
+## Implemented content and balance notes (0.2.0)
+- Twelve special cards and twelve relics have defined effects in `src/content.ts`.
+- Six special cards are available at the start; further cards unlock after boss victories and persist locally.
+- Special cards and relics are unique in a run. Relic inventory is capped at five.
+- Shop contains four slots: special card, relic, score upgrade, and extra discard. Items can be sold for chips.
+- Three stage events are presented from a ten-event catalogue.
+- The three bosses apply different gameplay restrictions.
+- Save validation checks campaign phases, all forty unique deck cards, selected-card references, and profile unlocks.
+- Lightweight synthesized sound effects use the Web Audio API; no external audio assets or services are required.

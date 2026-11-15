@@ -83,6 +83,7 @@ describe("campaign progression", () => {
     const {
       createCampaign,
       completeNormalRound,
+      completeEvent,
       completeShop,
       defeatBoss,
       claimBossReward
@@ -93,9 +94,11 @@ describe("campaign progression", () => {
 
     campaign = completeNormalRound(campaign, true);
     campaign = completeNormalRound(campaign, true);
-    expect(campaign.phase).toBe("normal");
+    expect(campaign.phase).toBe("event");
     expect(campaign.normalRoundsCompleted).toBe(2);
 
+    campaign = completeEvent(campaign);
+    expect(campaign.phase).toBe("normal");
     campaign = completeNormalRound(campaign, true);
     expect(campaign.phase).toBe("shop");
     expect(campaign.normalRoundsCompleted).toBe(3);
@@ -116,6 +119,7 @@ describe("campaign progression", () => {
     const {
       createCampaign,
       completeNormalRound,
+      completeEvent,
       completeShop,
       defeatBoss
     } = await import("../src/progression");
@@ -127,6 +131,7 @@ describe("campaign progression", () => {
     let campaign = initial;
     campaign = completeNormalRound(campaign, true);
     campaign = completeNormalRound(campaign, true);
+    campaign = completeEvent(campaign);
     campaign = completeNormalRound(campaign, true);
     campaign = completeShop(campaign);
     expect(defeatBoss(campaign, false)).toEqual(campaign);
@@ -136,6 +141,7 @@ describe("campaign progression", () => {
     const {
       createCampaign,
       completeNormalRound,
+      completeEvent,
       completeShop,
       defeatBoss,
       claimBossReward
@@ -145,6 +151,7 @@ describe("campaign progression", () => {
     for (let stage = 1; stage <= 3; stage++) {
       campaign = completeNormalRound(campaign, true);
       campaign = completeNormalRound(campaign, true);
+      campaign = completeEvent(campaign);
       campaign = completeNormalRound(campaign, true);
       campaign = completeShop(campaign);
       campaign = defeatBoss(campaign, true);
@@ -154,5 +161,44 @@ describe("campaign progression", () => {
     expect(campaign.phase).toBe("complete");
     expect(campaign.normalRoundsCompleted).toBe(9);
     expect(campaign.bossesDefeated).toBe(3);
+  });
+});
+
+
+describe("content catalogue and run effects", () => {
+  it("contains twelve unique special cards and twelve unique relics", async () => {
+    const {SPECIAL_CARDS, RELICS} = await import("../src/content");
+    expect(SPECIAL_CARDS).toHaveLength(12);
+    expect(new Set(SPECIAL_CARDS.map(x=>x.id)).size).toBe(12);
+    expect(RELICS).toHaveLength(12);
+    expect(new Set(RELICS.map(x=>x.id)).size).toBe(12);
+  });
+
+  it("enforces the five-relic capacity through the content inventory contract", async () => {
+    const {RELICS} = await import("../src/content");
+    expect(RELICS.slice(0,5).map(x=>x.id)).toHaveLength(5);
+    expect(RELICS).toHaveLength(12);
+  });
+
+  it("applies special-card, relic, discard and luck bonuses", async () => {
+    const {comboContentBonus,extraDiscards,extraLuck} = await import("../src/content");
+    const combo = detectCombos([card("brasa",2),card("ginga",3),card("mare",4)]).find(x=>x.id==="run")!;
+    expect(comboContentBonus(combo,["caramelo-supremo","fusca-azul"],["apito-juiz"],0,999,()=>0.9)).toBe(38);
+    expect(extraDiscards(["pombo-correio"],["chinelo-da-sorte"])).toBe(2);
+    expect(extraLuck(["pe-quente"],["ferradura-neon"])).toBe(4);
+  });
+});
+
+describe("campaign event checkpoints", () => {
+  it("inserts a special event between the second and third normal rounds", async () => {
+    const {createCampaign,completeNormalRound,completeEvent} = await import("../src/progression");
+    let state=createCampaign();
+    state=completeNormalRound(state,true);
+    state=completeNormalRound(state,true);
+    expect(state.phase).toBe("event");
+    state=completeEvent(state);
+    expect(state.phase).toBe("normal");
+    state=completeNormalRound(state,true);
+    expect(state.phase).toBe("shop");
   });
 });
