@@ -7,3 +7,5 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 
 .finish-button{background:#344a38;border:1px solid #8caa78;color:#e1f0d8;padding:9px 12px;border-radius:5px;font-size:10px;font-weight:800;cursor:pointer}.finish-button:hover{background:#456044}
+
+.lemon-symbol{font-family:"Barlow Condensed";font-size:15px!important;font-weight:900;letter-spacing:-.5px}
