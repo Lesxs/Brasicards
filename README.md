@@ -26,7 +26,7 @@ npm test
 ## Current prototype scope
 
 - 40-card deck across four suits
-- Seven-card hand
+- Seven-card hand and up to seven-card discards
 - Four plays and three discards per round
 - Continue playing after reaching the target, or end the round manually
 - Combination detection and player choice
