@@ -94,6 +94,18 @@ Three stages, each with three normal rounds, a shop, and a boss:
 Total: nine normal rounds and three boss encounters.
 After each boss, choose one of three rewards.
 
+## Campaign progression implementation
+
+The campaign state machine is implemented in `src/progression.ts`:
+- A stage contains exactly three normal rounds.
+- Winning the third normal round moves the run to the mandatory shop.
+- Completing the shop unlocks that stage's boss encounter.
+- Winning the boss moves the run to a reward-selection phase.
+- Claiming the reward starts the next stage; claiming the third boss reward completes the campaign.
+- Losing a normal round or boss does not advance campaign progression.
+
+This module currently defines and tests the progression rules independently. The prototype interface and saved-run model still need to be connected to these phases before the complete campaign is playable end to end.
+
 ## Events
 Special encounters between rounds. They offer two or three clear choices with explicit costs and consequences. Events may award cards, relics, chips, or eligible card evolutions.
 
