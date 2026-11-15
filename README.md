@@ -18,6 +18,9 @@ Early development — playable core prototype in progress.
 ```bash
 npm install
 npm run dev
+
+# Run automated tests
+npm test
 ```
 
 ## Current prototype scope
@@ -25,6 +28,7 @@ npm run dev
 - 40-card deck across four suits
 - Seven-card hand
 - Four plays and three discards per round
+- Continue playing after reaching the target, or end the round manually
 - Combination detection and player choice
 - Score calculation with suit bonuses and multipliers
 - Animated score feedback and round progression
