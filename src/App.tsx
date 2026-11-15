@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type Card, type Combo, type Suit, SUIT_MARKS, SUIT_NAMES, createDeck, detectCombos, drawCards, shuffle } from "./engine";
 import { type CampaignState, createCampaign, completeNormalRound, completeShop, defeatBoss, claimBossReward, STAGE_NAMES, BOSS_NAMES } from "./progression";
 
-type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; finished: boolean; campaign: CampaignState; scoreBonus: number; shopPurchases: string[]; };
+type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; finished: boolean; campaign: CampaignState; scoreBonus: number; extraPlays: number; extraDiscards: number; shopPurchases: string[]; };
 const freshRun = (): Run => {
   const dealt = drawCards(shuffle(createDeck()), [], []);
   return { ...dealt, selected: [], score: 0, goal: 220, plays: 4, discards: 3, chips: 20, luck: 0, round: 1, message: "Monte sua primeira combinação.", finished: false };
@@ -27,7 +27,7 @@ const loadRun = (): Run | null => {
         typeof value.discards !== "number" || typeof value.chips !== "number" ||
         typeof value.luck !== "number" || typeof value.round !== "number" ||
         typeof value.message !== "string") return null;
-    return { ...value, finished: Boolean(value.finished), campaign: value.campaign ?? createCampaign(), scoreBonus: Number(value.scoreBonus ?? 0), shopPurchases: Array.isArray(value.shopPurchases) ? value.shopPurchases : [] } as Run;
+    return { ...value, finished: Boolean(value.finished), campaign: value.campaign ?? createCampaign(), scoreBonus: Number(value.scoreBonus ?? 0), extraPlays: Number(value.extraPlays ?? 0), extraDiscards: Number(value.extraDiscards ?? 0), shopPurchases: Array.isArray(value.shopPurchases) ? value.shopPurchases : [] } as Run;
   } catch { return null; }
 };
 
