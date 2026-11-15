@@ -3,9 +3,10 @@ import { type Card, type Combo, type Suit, SUIT_MARKS, SUIT_NAMES, createDeck, d
 import { type CampaignState, createCampaign, completeNormalRound, completeShop, defeatBoss, claimBossReward, STAGE_NAMES, BOSS_NAMES } from "./progression";
 
 type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; finished: boolean; campaign: CampaignState; scoreBonus: number; extraPlays: number; extraDiscards: number; shopPurchases: string[]; };
-const freshRun = (): Run => {
+const freshRun = (campaign: CampaignState = createCampaign(), round = 1, chips = 20, luck = 0, scoreBonus = 0, goal?: number, extraPlays = 0, extraDiscards = 0): Run => {
   const dealt = drawCards(shuffle(createDeck()), [], []);
-  return { ...dealt, selected: [], score: 0, goal: 220, plays: 4, discards: 3, chips: 20, luck: 0, round: 1, message: "Monte sua primeira combinação.", finished: false };
+  const target = goal ?? Math.round(220 * Math.pow(1.34, round - 1));
+  return { ...dealt, selected: [], score: 0, goal: target, plays: 4 + extraPlays, discards: 3 + extraDiscards, chips, luck, round, message: "Monte sua primeira combinação.", finished: false, campaign, scoreBonus, extraPlays, extraDiscards, shopPurchases: [] };
 };
 const suitClass = (s: Suit) => "suit-" + s;
 const fmt = (n: number) => Math.floor(n).toLocaleString("pt-BR");
@@ -68,14 +69,57 @@ export default function App() {
     setActiveCombo(null);
   };
   const nextRound = () => {
-    const next = run.round + 1;
-    const bonus = 8 + Math.floor(run.score / 100);
-    const fresh = freshRun();
-    setRun({ ...fresh, round: next, goal: Math.round(220 * Math.pow(1.34, next - 1)), chips: run.chips + bonus, luck: run.luck, message: "Nova rodada. +" + bonus + " fichas pela vitória." });
+    if (!won) return;
+    if (run.campaign.phase === "boss") {
+      const campaign = defeatBoss(run.campaign, true);
+      setRun(r => ({ ...r, campaign, finished: true, message: "Chefe derrotado! Escolha uma recompensa." }));
+      return;
+    }
+    const campaign = completeNormalRound(run.campaign, true);
+    const bonus = 8 + Math.min(20, Math.floor(Math.max(0, run.score - run.goal) / 100));
+    if (campaign.phase === "shop") {
+      setRun(r => ({ ...r, campaign, finished: true, chips: r.chips + bonus, message: "Terceira rodada concluída. A loja está aberta." }));
+    } else {
+      const fresh = freshRun(campaign, run.round + 1, run.chips + bonus, run.luck, run.scoreBonus, undefined, run.extraPlays, run.extraDiscards);
+      setRun({ ...fresh, message: "Rodada concluída. +" + bonus + " fichas." });
+    }
     setActiveCombo(null); setLastGain(0);
   };
-  const finishRound = () => { if (won) setRun(r => ({ ...r, finished: true, message: "Rodada encerrada com a meta alcançada." })); };
+  const finishRound = () => { if (won) setRun(r => ({ ...r, finished: true, message: "Meta alcançada. Rodada encerrada." })); };
   const restart = () => { setRun(freshRun()); setActiveCombo(null); setLastGain(0); };
+  const buyShopOffer = (id: string) => {
+    const offers: Record<string, { cost: number; apply: (r: Run) => Partial<Run>; label: string }> = {
+      points: { cost: 10, label: "Bônus de combo +5", apply: r => ({ scoreBonus: r.scoreBonus + 5 }) },
+      discard: { cost: 8, label: "+1 descarte", apply: r => ({ extraDiscards: r.extraDiscards + 1 }) },
+      luck: { cost: 6, label: "+20 Fator Sorte", apply: r => ({ luck: r.luck + 20 }) },
+      plays: { cost: 12, label: "+1 jogada", apply: r => ({ extraPlays: r.extraPlays + 1 }) }
+    };
+    const offer = offers[id];
+    if (!offer || run.shopPurchases.includes(id) || run.chips < offer.cost) return;
+    setRun(r => ({ ...r, ...offer.apply(r), chips: r.chips - offer.cost, shopPurchases: [...r.shopPurchases, id], message: "Comprado: " + offer.label }));
+  };
+  const leaveShop = () => {
+    const campaign = completeShop(run.campaign);
+    const bossGoal = Math.round(480 * Math.pow(1.45, campaign.stage - 1));
+    setRun(freshRun(campaign, run.round + 1, run.chips, run.luck, run.scoreBonus, bossGoal, run.extraPlays, run.extraDiscards));
+    setActiveCombo(null); setLastGain(0);
+  };
+  const claimReward = (id: string) => {
+    const rewards: Record<string, (r: Run) => Partial<Run>> = {
+      chips: r => ({ chips: r.chips + 25 }),
+      luck: r => ({ luck: r.luck + 35 }),
+      upgrade: r => ({ scoreBonus: r.scoreBonus + 8 })
+    };
+    if (!rewards[id]) return;
+    const campaign = claimBossReward(run.campaign);
+    if (campaign.phase === "complete") {
+      setRun(r => ({ ...r, campaign, message: "Campanha concluída!", finished: true }));
+      return;
+    }
+    const partial = rewards[id](run);
+    setRun({ ...freshRun(campaign, run.round + 1, run.chips, run.luck, run.scoreBonus, undefined, run.extraPlays, run.extraDiscards), ...partial, message: "Recompensa recebida. A próxima etapa começa agora." });
+    setActiveCombo(null); setLastGain(0);
+  };
   const spin = () => {
     if (run.luck < 30 || ended) return;
     const reward = 35 + Math.floor(Math.random() * 46);
