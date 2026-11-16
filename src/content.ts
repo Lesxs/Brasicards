@@ -70,7 +70,7 @@ export function comboContentBonus(combo:Combo, specialIds:string[], relicIds:str
   if (relicIds.includes("trofeu-isopor") && currentScore<goal && currentScore+combo.total>=goal) bonus+=8;
   return bonus;
 }
-export function comboMultiplier(specialIds:string[], combo:Combo):number {
+export function comboMultiplier(specialIds:string[], _combo:Combo):number {
   return specialIds.includes("limao-azedo") ? 1.1 : 1;
 }
 export function extraDiscards(specialIds:string[], relicIds:string[]):number {

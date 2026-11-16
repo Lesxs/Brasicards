@@ -59,6 +59,7 @@ export default function App() {
 
   const toggleCard = (id: string) => {
     if (ended) return;
+    if(soundEnabled)playCardSound();
     setRun(r => ({ ...r, selected: r.selected.includes(id) ? r.selected.filter(x => x !== id) : r.selected.length < 7 ? [...r.selected, id] : r.selected }));
   };
   const playCombo = (combo: Combo) => {
@@ -171,12 +172,14 @@ export default function App() {
   };
   const spin = () => {
     if (run.luck < 30 || ended || (run.campaign.phase === "boss" && run.campaign.stage === 3)) return;
+    if(soundEnabled)playRewardSound();
     const reward = Math.round((35 + Math.floor(Math.random() * 46))*slotMultiplier(run.specialCards,run.relics)) + (run.specialCards.includes("controle-remoto")?12:0);
     setRun(r => ({ ...r, luck: r.luck - 30, score: r.score + reward, message: "A máquina pagou " + reward + " pontos!" }));
     setLastGain(reward); setFlash(true); window.setTimeout(() => setFlash(false), 750);
   };
   const spinTriple = () => {
     if (run.luck < 30 || ended || (run.campaign.phase === "boss" && run.campaign.stage === 3)) return;
+    if(soundEnabled)playRewardSound();
     const rewards = Array.from({length:3},()=>Math.round((12+Math.floor(Math.random()*20))*slotMultiplier(run.specialCards,run.relics))+(run.specialCards.includes("controle-remoto")?12:0));
     const reward = rewards.reduce((a,b)=>a+b,0);
     setRun(r => ({ ...r, luck: r.luck - 30, score: r.score + reward, message: "Três giros: " + rewards.join(" • ") + " = " + reward + " pontos!" }));
