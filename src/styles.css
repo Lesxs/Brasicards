@@ -29,3 +29,25 @@
 .inventory-item:hover{border-color:var(--gold);color:var(--gold)}
 .shop-card .shop-offer{min-height:92px}
 @media(max-width:560px){.header-actions{gap:4px}.inventory-strip{grid-template-columns:1fr}.inventory-strip span{line-height:1.5}}
+
+
+/* Tutorial e feedback de primeira partida */
+.tutorial-overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(5,10,7,.84);backdrop-filter:blur(9px);animation:fade-in .2s ease}
+.tutorial-card{width:min(520px,100%);padding:28px;border:1px solid #80683d;border-radius:10px;background:linear-gradient(145deg,#26392c,#111a14);box-shadow:0 24px 100px #000c}
+.tutorial-topline{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.tutorial-skip{border:0;background:transparent;color:#aeb9ad;font-size:10px;cursor:pointer}
+.tutorial-progress{display:flex;gap:6px;margin:20px 0 16px}
+.tutorial-progress i{height:4px;flex:1;border-radius:5px;background:#435044}
+.tutorial-progress i.active{background:var(--gold);box-shadow:0 0 12px #e8bd6366}
+.tutorial-step{font-size:9px;letter-spacing:1.8px;color:#aab8a9;font-weight:800}
+.tutorial-card h2{font-family:'Barlow Condensed';font-size:36px;line-height:1.05;margin:7px 0 10px;color:#f4e4bd}
+.tutorial-card p{font-size:13px;line-height:1.7;color:#d1d9ce;margin:0}
+.tutorial-tip{display:grid;gap:5px;margin:18px 0 22px;padding:12px 14px;border-left:2px solid var(--gold);background:#ffffff09;color:#c5d0c3;font-size:11px;line-height:1.55}
+.tutorial-tip b{font-size:9px;letter-spacing:1.5px;color:var(--gold)}
+.tutorial-actions{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.combo-guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;line-height:1.55}
+.combo-guide-grid span{color:#c3cec1}
+.combo-guide-grid b{color:#f0dfb5}
+.combo-guide>small{display:block;margin-top:12px;color:#89988a;line-height:1.5}
+@media(max-width:560px){.tutorial-card{padding:22px}.tutorial-card h2{font-size:31px}.tutorial-card p{font-size:12px}.combo-guide-grid{grid-template-columns:1fr}.header-actions .quiet-button{padding:7px 8px}}
+@media(prefers-reduced-motion:reduce){.tutorial-overlay{animation:none}}

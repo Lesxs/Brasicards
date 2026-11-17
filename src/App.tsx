@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type Card, type Combo, type Suit, SUIT_MARKS, SUIT_NAMES, createDeck, detectCombos, drawCards, shuffle } from "./engine";
 import { type CampaignState, createCampaign, completeNormalRound, completeEvent, completeShop, defeatBoss, claimBossReward, STAGE_NAMES, BOSS_NAMES } from "./progression";
 import { STARTER_SPECIAL_IDS, RELICS, SPECIAL_CARDS, eventForStage, comboContentBonus, comboMultiplier, extraLuck, slotMultiplier, roundChipBonus, extraDiscards as getExtraDiscards, getSpecial, getRelic } from "./content";
-import { playCardSound, playComboSound, playRewardSound } from "./audio";
+import { playCardSound, playComboSound, playRewardSound, playDiscardSound, playMilestoneSound } from "./audio";
 
 type Run = { deck: Card[]; discard: Card[]; hand: Card[]; selected: string[]; score: number; goal: number; plays: number; discards: number; chips: number; luck: number; round: number; message: string; finished: boolean; campaign: CampaignState; scoreBonus: number; extraPlays: number; extraDiscards: number; shopPurchases: string[]; specialCards: string[]; relics: string[]; unlockedSpecials: string[]; };
 const freshRun = (campaign: CampaignState = createCampaign(), round = 1, chips = 20, luck = 0, scoreBonus = 0, goal?: number, extraPlays = 0, extraDiscards = 0, specialCards: string[] = [], relics: string[] = [], unlockedSpecials: string[] = [...STARTER_SPECIAL_IDS]): Run => {
@@ -10,6 +10,12 @@ const freshRun = (campaign: CampaignState = createCampaign(), round = 1, chips =
   const target = goal ?? Math.round(220 * Math.pow(1.34, round - 1));
   return { ...dealt, selected: [], score: 0, goal: target, plays: 4 + extraPlays, discards: 3 + extraDiscards + getExtraDiscards(specialCards,relics), chips, luck, round, message: "Monte sua primeira combinação.", finished: false, campaign, scoreBonus, extraPlays, extraDiscards, shopPurchases: [], specialCards, relics, unlockedSpecials };
 };
+const tutorialSteps = [
+  { title: "Bem-vindo à Mesa do Caos", body: "Seu objetivo é alcançar a meta de pontos antes de acabar suas jogadas. Você não precisa decorar tudo: o jogo vai mostrar as combinações disponíveis conforme selecionar as cartas.", tip: "A mão tem até 7 cartas. Você começa com 4 jogadas e 3 descartes." },
+  { title: "Escolha suas cartas", body: "Clique nas cartas para selecioná-las. Você pode escolher de 2 a 7 cartas; nem todas precisam formar uma combinação. Se mudar de ideia, clique novamente para desmarcar.", tip: "Comece procurando valores iguais, números em sequência ou cartas do mesmo naipe." },
+  { title: "Use uma combinação", body: "Quando houver uma combinação válida, ela aparecerá logo abaixo da sua mão. Compare os pontos e escolha a opção que preferir. Ao jogar, as cartas usadas são repostas automaticamente.", tip: "Cada combinação consome 1 jogada. O descarte consome 1 descarte e troca as cartas escolhidas." },
+  { title: "Alcance a meta e evolua", body: "A barra no alto mostra quanto falta para alcançar a meta. Combinações maiores e especiais podem render mais pontos. O Fator Sorte alimenta a Máquina da Sorte; fichas são usadas na loja entre etapas.", tip: "Observe suas cartas e compare as opções antes de jogar. Não precisa gastar todos os recursos de uma vez." }
+] as const;
 const suitClass = (s: Suit) => "suit-" + s;
 const fmt = (n: number) => Math.floor(n).toLocaleString("pt-BR");
 const validCampaign = (value: unknown): value is CampaignState => {
@@ -49,6 +55,7 @@ export default function App() {
   const [lastGain, setLastGain] = useState(0);
   const [flash, setFlash] = useState(false);
   const [showCombos, setShowCombos] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState<number | null>(()=>{try{return localStorage.getItem("brasicards-tutorial-v1")==="done"?null:0}catch{return 0}});
   const [soundEnabled,setSoundEnabled]=useState(()=>{try{return localStorage.getItem("brasicards-sound")!=="off"}catch{return true}});
 
   useEffect(() => { try { localStorage.setItem("brasicards-run-v2", JSON.stringify(run)); localStorage.setItem("brasicards-unlocks",JSON.stringify(profileUnlocks)); localStorage.setItem("brasicards-sound",soundEnabled?"on":"off"); } catch { /* storage may be unavailable */ } }, [run,profileUnlocks,soundEnabled]);
@@ -56,6 +63,8 @@ export default function App() {
   const combos = useMemo(() => selectedCards.length >= 2 ? detectCombos(selectedCards).filter(c => !(run.campaign.phase === "boss" && run.campaign.stage === 1 && c.cards.length > 4)) : [], [selectedCards, run.campaign.phase, run.campaign.stage]);
   const won = run.score >= run.goal;
   const ended = run.finished || run.plays <= 0;
+  const closeTutorial = () => { setTutorialStep(null); try { localStorage.setItem("brasicards-tutorial-v1","done"); } catch { /* storage may be unavailable */ } };
+  const advanceTutorial = () => { if (tutorialStep === null) return; if (tutorialStep >= tutorialSteps.length - 1) closeTutorial(); else setTutorialStep(tutorialStep + 1); };
 
   const toggleCard = (id: string) => {
     if (ended) return;
@@ -65,6 +74,8 @@ export default function App() {
   const playCombo = (combo: Combo) => {
     if (ended || run.plays <= 0) return;
     if(soundEnabled)playComboSound(combo.cards.length);
+    const previewGain = Math.round((combo.total + comboContentBonus(combo,run.specialCards,run.relics,run.score,run.goal) + run.scoreBonus) * comboMultiplier(run.specialCards,combo) * (run.campaign.phase === "boss" && run.campaign.stage === 2 ? 0.8 : 1));
+    if(soundEnabled && run.score < run.goal && run.score + previewGain >= run.goal) playMilestoneSound();
     const used = new Set(combo.cards.map(c => c.id));
     const rest = run.hand.filter(c => !used.has(c.id));
     const replenished = drawCards(run.deck, [...run.discard, ...combo.cards], rest);
@@ -81,7 +92,8 @@ export default function App() {
     if (ended || !selectedCards.length || run.discards <= 0) return;
     const removed = new Set(selectedCards.map(c => c.id));
     const replenished = drawCards(run.deck, [...run.discard, ...selectedCards], run.hand.filter(c => !removed.has(c.id)));
-    setRun(r => ({ ...r, ...replenished, selected: [], discards: r.discards - 1, message: selectedCards.length + " carta(s) descartada(s)." }));
+    if(soundEnabled)playDiscardSound();
+    setRun(r => ({ ...r, ...replenished, selected: [], discards: r.discards - 1, message: selectedCards.length + " carta(s) descartada(s). Confira as novas cartas." }));
     setActiveCombo(null);
   };
   const nextRound = () => {
@@ -190,7 +202,7 @@ export default function App() {
     <header className="topbar">
       <a className="brand" href="#" onClick={e=>e.preventDefault()}><span className="brand-mark">B</span><span>BRASI<span className="brand-gold">CARDS</span><small>O CASSINO DO CAOS</small></span></a>
       <div className="top-resources"><div><small>FICHAS</small><strong>◈ {fmt(run.chips)}</strong></div><div><small>FATOR SORTE</small><strong className="luck-text">✧ {fmt(run.luck)}</strong></div></div>
-      <div className="header-actions"><button className="quiet-button" onClick={()=>setSoundEnabled(v=>!v)}>{soundEnabled?"Som ligado":"Som desligado"}</button><button className="quiet-button" onClick={restart}>Nova partida ↻</button></div>
+      <div className="header-actions"><button className="quiet-button" onClick={()=>setTutorialStep(0)}>Como jogar</button><button className="quiet-button" onClick={()=>setSoundEnabled(v=>!v)}>{soundEnabled?"Som ligado":"Som desligado"}</button><button className="quiet-button" onClick={restart}>Nova partida ↻</button></div>
     </header>
 
     <section className="run-strip">
@@ -215,7 +227,7 @@ export default function App() {
       <button className="text-button" onClick={()=>setShowCombos(v=>!v)}>{showCombos?"Ocultar regras":"Ver combinações"} ⌄</button>
     </section>
 
-    {showCombos && <section className="combo-guide"><strong>Combinações reconhecidas</strong><div>Parceria · Trinca de Respeito · Bonde Fechado · Escadinha · Revoada · Virada de Mesa · Quadra Suprema · Sequência de Ouro</div></section>}
+    {showCombos && <section className="combo-guide"><strong>Guia rápido de combinações</strong><div className="combo-guide-grid"><span><b>Parceria</b> — 2 cartas com o mesmo valor.</span><span><b>Trinca de Respeito</b> — 3 cartas com o mesmo valor.</span><span><b>Bonde Fechado</b> — 4 cartas com o mesmo valor.</span><span><b>Escadinha</b> — 3 a 5 valores consecutivos.</span><span><b>Revoada</b> — 3 a 5 cartas do mesmo naipe.</span><span><b>Virada de Mesa</b> — uma trinca e um par (5 cartas).</span><span><b>Quadra Suprema</b> — quatro cartas iguais e uma extra.</span><span><b>Sequência de Ouro</b> — 5 valores consecutivos do mesmo naipe.</span></div><small>As combinações disponíveis aparecem automaticamente quando você seleciona cartas válidas. Você escolhe qual delas jogar.</small></section>}
 
     <section className="hand-section">
       <div className="section-heading"><div><span className="eyebrow">SEU BARALHO</span><h2>Cartas na mão <small>{run.hand.length} / 7</small></h2></div><span className="selection-count">{run.selected.length} SELECIONADAS</span></div>
@@ -228,7 +240,7 @@ export default function App() {
       </div>
       <div className="hand-actions">
         <button className="secondary-action" onClick={discardSelected} disabled={!selectedCards.length||run.discards<=0||ended}>Descartar selecionadas <span>−1 descarte</span></button>
-        <div className="action-hint">{run.campaign.phase === "boss" && run.campaign.stage === 1 ? "O Fiscal: máximo de 4 cartas por seleção." : "Selecione cartas para revelar combinações possíveis."}</div>
+        <div className="action-hint">{run.campaign.phase === "boss" && run.campaign.stage === 1 ? "O Fiscal: máximo de 4 cartas por seleção." : selectedCards.length ? "Confira as combinações abaixo ou desmarque cartas para tentar outra seleção." : "Clique em 2 ou mais cartas para encontrar combinações. Você escolhe qual jogar."}</div>
       </div>
     </section>
 
@@ -253,6 +265,7 @@ export default function App() {
     {run.campaign.phase === "boss-reward" && <section className="result-overlay"><div className="result-card shop-card"><span className="eyebrow">CHEFE DERROTADO</span><h2>ESCOLHA SUA RECOMPENSA</h2><p>Selecione apenas uma das três recompensas.</p><div className="shop-offers"><button className="shop-offer" onClick={()=>claimReward("chips")}><b>Bolso reforçado</b><small>Receba 25 fichas.</small><strong>25 FICHAS</strong></button><button className="shop-offer" onClick={()=>claimReward("luck")}><b>Maré de sorte</b><small>Receba 35 de Fator Sorte.</small><strong>35 ✧</strong></button><button className="shop-offer" onClick={()=>claimReward("upgrade")}><b>Combo turbinado</b><small>+8 pontos em cada combinação futura.</small><strong>UPGRADE</strong></button></div></div></section>}
     {run.campaign.phase === "complete" && <section className="result-overlay"><div className="result-card"><span className="eyebrow">FIM DA CAMPANHA</span><h2>VOCÊ DOMINOU O CAOS!</h2><p>Nove rodadas e três chefes superados.</p><button className="primary-action" onClick={restart}>Nova campanha ↻</button></div></section>}
     <section className="inventory-strip"><div><b>CARTAS ESPECIAIS ({run.specialCards.length})</b><span>{run.specialCards.length?run.specialCards.map(id=><button key={id} className="inventory-item" title={getSpecial(id)?.description} onClick={()=>sellInventory("special",id)}>{getSpecial(id)?.name} · vender</button>):"Nenhuma adquirida"}</span></div><div><b>RELÍQUIAS ({run.relics.length}/5)</b><span>{run.relics.length?run.relics.map(id=><button key={id} className="inventory-item" title={getRelic(id)?.description} onClick={()=>sellInventory("relic",id)}>{getRelic(id)?.name} · vender</button>):"Nenhuma adquirida"}</span></div></section>
+    {tutorialStep !== null && <section className="tutorial-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-title"><div className="tutorial-card"><div className="tutorial-topline"><span className="eyebrow">GUIA DE PRIMEIRA PARTIDA</span><button className="tutorial-skip" onClick={closeTutorial}>Pular tutorial ×</button></div><div className="tutorial-progress">{tutorialSteps.map((_,i)=><i key={i} className={i<=tutorialStep?"active":""}/>)}</div><span className="tutorial-step">PASSO {tutorialStep+1} DE {tutorialSteps.length}</span><h2 id="tutorial-title">{tutorialSteps[tutorialStep].title}</h2><p>{tutorialSteps[tutorialStep].body}</p><div className="tutorial-tip"><b>DICA</b>{tutorialSteps[tutorialStep].tip}</div><div className="tutorial-actions"><button className="quiet-button" onClick={closeTutorial}>Pular</button><button className="primary-action" onClick={advanceTutorial}>{tutorialStep===tutorialSteps.length-1?"Começar a jogar":"Continuar →"}</button></div></div></section>}
     <footer><span>BRASICARDS · PROTÓTIPO 0.1</span><span>FEITO PARA COMBOS ABSURDOS</span></footer>
   </main>;
 }
