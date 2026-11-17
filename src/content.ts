@@ -5,6 +5,7 @@ export type SpecialCard = { id: string; name: string; rarity: Rarity; descriptio
 export type Relic = { id: string; name: string; rarity: Rarity; description: string; effect: string };
 
 export const SPECIAL_CARDS: SpecialCard[] = [
+  { id:"saci-perere", name:"Saci Pererê", rarity:"épica", description:"A cada combinação, 30% de chance de uma travessura: +8, +16 ou +24 pontos, ou +10 de Fator Sorte.", effect:"saci-trick" },
   { id:"caramelo-supremo", name:"Caramelo Supremo", rarity:"incomum", description:"+8 pontos em combinações de 3 ou mais cartas.", effect:"wide-combo" },
   { id:"fusca-azul", name:"Fusca Azul", rarity:"rara", description:"+18 pontos em Escadinha e Sequência de Ouro.", effect:"sequence" },
   { id:"limao-azedo", name:"Limão Azedo", rarity:"épica", description:"+10% na pontuação final de cada combinação.", effect:"multiplier" },
@@ -92,3 +93,13 @@ export function roundChipBonus(specialIds:string[], relicIds:string[], score:num
 }
 export function getSpecial(id:string):SpecialCard|undefined{return SPECIAL_CARDS.find(x=>x.id===id)}
 export function getRelic(id:string):Relic|undefined{return RELICS.find(x=>x.id===id)}
+
+export type SaciTrick = { bonus: number; luck: number; message: string };
+export function rollSaciTrick(specialIds: string[], rng: () => number = Math.random): SaciTrick | null {
+  if (!specialIds.includes("saci-perere") || rng() >= 0.3) return null;
+  const trick = Math.floor(rng() * 4);
+  if (trick === 0) return { bonus: 8, luck: 0, message: "Saci aprontou: +8 pontos!" };
+  if (trick === 1) return { bonus: 16, luck: 0, message: "Travessura do Saci: +16 pontos!" };
+  if (trick === 2) return { bonus: 24, luck: 0, message: "Pegadinha lendária do Saci: +24 pontos!" };
+  return { bonus: 0, luck: 10, message: "O Saci roubou a cena: +10 de Fator Sorte!" };
+}

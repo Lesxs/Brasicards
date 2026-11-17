@@ -51,3 +51,11 @@
 .combo-guide>small{display:block;margin-top:12px;color:#89988a;line-height:1.5}
 @media(max-width:560px){.tutorial-card{padding:22px}.tutorial-card h2{font-size:31px}.tutorial-card p{font-size:12px}.combo-guide-grid{grid-template-columns:1fr}.header-actions .quiet-button{padding:7px 8px}}
 @media(prefers-reduced-motion:reduce){.tutorial-overlay{animation:none}}
+
+
+/* Cartas especiais ilustradas */
+.special-inventory-item{display:flex;align-items:center;gap:10px;text-align:left;max-width:310px;white-space:normal;padding:7px 9px}
+.special-inventory-item span{display:grid;gap:3px;min-width:0}
+.special-inventory-item small{font-size:9px;line-height:1.35;color:#b9c5b9}
+.special-inventory-item em{font-style:normal;font-size:8px;color:var(--gold);text-transform:uppercase;letter-spacing:1px}
+.saci-inventory img{width:58px;height:76px;object-fit:cover;object-position:center;border-radius:5px;border:1px solid #a98b55;flex:none}
