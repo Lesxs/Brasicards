@@ -166,12 +166,23 @@ describe("campaign progression", () => {
 
 
 describe("content catalogue and run effects", () => {
-  it("contains twelve unique special cards and twelve unique relics", async () => {
+  it("contains thirteen unique special cards and twelve unique relics", async () => {
     const {SPECIAL_CARDS, RELICS} = await import("../src/content");
-    expect(SPECIAL_CARDS).toHaveLength(12);
-    expect(new Set(SPECIAL_CARDS.map(x=>x.id)).size).toBe(12);
+    expect(SPECIAL_CARDS).toHaveLength(13);
+    expect(new Set(SPECIAL_CARDS.map(x=>x.id)).size).toBe(13);
     expect(RELICS).toHaveLength(12);
     expect(new Set(RELICS.map(x=>x.id)).size).toBe(12);
+  });
+
+  it("rolls the Saci Pererê random effect with the intended 30% chance and outcomes", async () => {
+    const {rollSaciTrick} = await import("../src/content");
+    expect(rollSaciTrick([],()=>0)).toBeNull();
+    expect(rollSaciTrick(["saci-perere"],()=>0.3)).toBeNull();
+    expect(rollSaciTrick(["saci-perere"],()=>0.1)).toEqual({bonus:8,luck:0,message:"Saci aprontou: +8 pontos!"});
+    let values=[0.1,0.6];
+    expect(rollSaciTrick(["saci-perere"],()=>values.shift()!)).toEqual({bonus:16,luck:0,message:"Travessura do Saci: +16 pontos!"});
+    values=[0.1,0.9];
+    expect(rollSaciTrick(["saci-perere"],()=>values.shift()!)).toEqual({bonus:0,luck:10,message:"O Saci roubou a cena: +10 de Fator Sorte!"});
   });
 
   it("enforces the five-relic capacity through the content inventory contract", async () => {
