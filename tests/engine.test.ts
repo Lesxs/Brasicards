@@ -179,8 +179,10 @@ describe("content catalogue and run effects", () => {
     expect(rollSaciTrick([],()=>0)).toBeNull();
     expect(rollSaciTrick(["saci-perere"],()=>0.3)).toBeNull();
     expect(rollSaciTrick(["saci-perere"],()=>0.1)).toEqual({bonus:8,luck:0,message:"Saci aprontou: +8 pontos!"});
-    let values=[0.1,0.6];
+    let values=[0.1,0.4];
     expect(rollSaciTrick(["saci-perere"],()=>values.shift()!)).toEqual({bonus:16,luck:0,message:"Travessura do Saci: +16 pontos!"});
+    values=[0.1,0.6];
+    expect(rollSaciTrick(["saci-perere"],()=>values.shift()!)).toEqual({bonus:24,luck:0,message:"Pegadinha lendária do Saci: +24 pontos!"});
     values=[0.1,0.9];
     expect(rollSaciTrick(["saci-perere"],()=>values.shift()!)).toEqual({bonus:0,luck:10,message:"O Saci roubou a cena: +10 de Fator Sorte!"});
   });
